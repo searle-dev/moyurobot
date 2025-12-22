@@ -244,25 +244,63 @@ def create_app(service=None, config: Optional[Dict[str, Any]] = None) -> Flask:
     def video_feed(camera_name: str):
         """视频流端点"""
         def generate():
+            """生成 MJPEG 视频流"""
+            last_frame_time = 0
+            # 限制最高帧率为 10fps，节省带宽
+            min_interval = 0.1
+            
             while True:
-                with frame_lock:
-                    frame = latest_frames.get(camera_name)
-                
-                if frame is not None:
-                    # 编码为 JPEG
-                    _, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
-                else:
-                    # 生成占位图
-                    placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
-                    cv2.putText(placeholder, f"Camera: {camera_name}", (50, 240),
-                               cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                    _, jpeg = cv2.imencode('.jpg', placeholder)
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
-                
-                time.sleep(0.033)  # ~30 FPS
+                try:
+                    now = time.time()
+                    if now - last_frame_time < min_interval:
+                        time.sleep(0.01)
+                        continue
+                    
+                    # 直接从机器人摄像头读取
+                    if (robot_service is not None and 
+                        robot_service.robot is not None and
+                        robot_service.robot.is_connected and 
+                        camera_name in robot_service.robot.cameras):
+                        try:
+                            frame = robot_service.robot.cameras[camera_name].async_read(timeout_ms=100)
+                            if frame is not None and frame.size > 0:
+                                # 降低分辨率节省带宽
+                                height, width = frame.shape[:2]
+                                new_width = int(width * 0.7)
+                                new_height = int(height * 0.7)
+                                frame_resized = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                                
+                                # RGB -> BGR (lerobot 返回 RGB，imencode 需要 BGR)
+                                frame_bgr = cv2.cvtColor(frame_resized, cv2.COLOR_RGB2BGR)
+                                
+                                # 编码为 JPEG
+                                ret, jpeg = cv2.imencode('.jpg', frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 60])
+                                if ret:
+                                    yield (b'--frame\r\n'
+                                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+                                    last_frame_time = time.time()
+                                else:
+                                    time.sleep(0.05)
+                            else:
+                                time.sleep(0.05)
+                        except Exception as e:
+                            logger.debug(f"摄像头 {camera_name} 读取错误: {e}")
+                            time.sleep(0.1)
+                    else:
+                        # 摄像头不可用，生成占位图
+                        placeholder = np.zeros((336, 448, 3), dtype=np.uint8)
+                        cv2.putText(placeholder, f"Camera: {camera_name}", (50, 168),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                        cv2.putText(placeholder, "Not Connected", (100, 200),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (128, 128, 128), 1)
+                        _, jpeg = cv2.imencode('.jpg', placeholder)
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+                        time.sleep(0.5)  # 占位图更新慢一些
+                        
+                except Exception as e:
+                    logger.error(f"视频流错误: {e}")
+                    time.sleep(0.1)
         
         return Response(
             generate(),
