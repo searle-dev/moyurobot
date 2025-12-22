@@ -366,8 +366,11 @@ def run_server(host: str = "0.0.0.0", port: int = 8080, service=None,
         try:
             from moyurobot.core.robot_service import create_default_service, set_global_service
             
-            logger.info("创建机器人服务...")
-            service = create_default_service(robot_id="moyu_robot")
+            # 从环境变量获取 robot_id，默认使用 "my_awesome_kiwi"（与 lerobot 原始校准文件匹配）
+            robot_id = os.environ.get("ROBOT_ID", "my_awesome_kiwi")
+            
+            logger.info(f"创建机器人服务 (robot_id={robot_id})...")
+            service = create_default_service(robot_id=robot_id)
             set_global_service(service)
             
             # 尝试连接机器人
