@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+        "moyu-robot": {
+            "command": "python",
+            "args": [
+                "-m",
+                "moyurobot.mcp.server"
+            ],
+            "cwd": "/Users/zhengbo.zb/workspaces/moyurobot/src"
+        }
+    }
+}
+

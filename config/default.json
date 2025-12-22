@@ -1,0 +1,44 @@
+{
+    "robot": {
+        "robot_id": "moyu_robot",
+        "linear_speed": 0.2,
+        "angular_speed": 30.0,
+        "arm_servo_speed": 0.2,
+        "arm_torque_limit": 600,
+        "command_timeout_s": 6.0,
+        "max_loop_freq_hz": 30
+    },
+    "cameras": {
+        "front": {
+            "name": "front",
+            "device_name_or_path": "T1 Webcam",
+            "fps": 30,
+            "width": 640,
+            "height": 480,
+            "rotate_180": false
+        },
+        "wrist": {
+            "name": "wrist",
+            "device_name_or_path": "USB Camera",
+            "fps": 30,
+            "width": 640,
+            "height": 480,
+            "rotate_180": false
+        }
+    },
+    "mcp": {
+        "server_name": "MoYuRobotController",
+        "lerobot_path": "/Users/zhengbo.zb/workspaces/lerobot"
+    },
+    "web": {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "debug": false
+    },
+    "pipe": {
+        "endpoint_url": "wss://your-endpoint.example.com/ws",
+        "reconnect_interval": 5,
+        "max_reconnect_attempts": -1
+    }
+}
+

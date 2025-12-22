@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moyurobot"
+version = "1.0.0"
+description = "摸鱼遥控车控制系统 - 基于 MCP 协议的智能机器人控制平台"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "MoYu Team"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "flask>=2.3.0",
+    "flask-cors>=4.0.0",
+    "fastmcp>=0.1.0",
+    "websockets>=11.0",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+robot = [
+    "torch>=2.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+]
+
+[project.scripts]
+moyurobot = "moyurobot.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/moyuteam/moyurobot"
+Repository = "https://github.com/moyuteam/moyurobot"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"moyurobot.web" = ["templates/*.html", "static/*.css", "static/*.js"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摸鱼遥控车 - 连接中</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .waiting-container {
+            text-align: center;
+            color: #fff;
+        }
+
+        .robot-icon {
+            font-size: 100px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
+        .loading-text {
+            font-size: 24px;
+            margin-top: 30px;
+            font-weight: 300;
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .loading-dots span {
+            width: 12px;
+            height: 12px;
+            background: #4fc3f7;
+            border-radius: 50%;
+            animation: bounce 1.4s ease-in-out infinite both;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .status-message {
+            margin-top: 40px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .retry-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: transparent;
+            border: 2px solid #4fc3f7;
+            border-radius: 25px;
+            color: #4fc3f7;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            background: #4fc3f7;
+            color: #1a1a2e;
+        }
+    </style>
+</head>
+<body>
+    <div class="waiting-container">
+        <div class="robot-icon">🤖</div>
+        <div class="loading-text">正在连接机器人...</div>
+        <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="status-message" id="statusMessage">
+            正在初始化机器人服务，请稍候...
+        </div>
+        <button class="retry-btn" onclick="checkConnection()">重新检查连接</button>
+    </div>
+
+    <script>
+        let checkInterval;
+
+        async function checkConnection() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.connected) {
+                    document.getElementById('statusMessage').textContent = '连接成功！正在跳转...';
+                    clearInterval(checkInterval);
+                    window.location.href = '/';
+                } else {
+                    document.getElementById('statusMessage').textContent = 
+                        '等待机器人连接: ' + (data.message || '请确保机器人已开机');
+                }
+            } catch (error) {
+                document.getElementById('statusMessage').textContent = 
+                    '连接检查失败: ' + error.message;
+            }
+        }
+
+        // 每3秒检查一次连接状态
+        checkInterval = setInterval(checkConnection, 3000);
+        
+        // 页面加载时立即检查
+        checkConnection();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>摸鱼遥控车 - 控制面板</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部状态栏 -->
+        <header class="header">
+            <div class="logo">🐟 摸鱼遥控车</div>
+            <div class="status-bar">
+                <span id="connectionStatus" class="status disconnected">● 连接中...</span>
+                <span id="speedLevel" class="speed-level">速度: 中速</span>
+            </div>
+            <button id="logoutBtn" class="logout-btn">退出</button>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 视频显示区域 -->
+            <section class="video-section">
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        <h3>前置摄像头</h3>
+                        <img id="frontCamera" src="/api/video/front" alt="前置摄像头" class="video-feed">
+                    </div>
+                    <div class="video-wrapper">
+                        <h3>腕部摄像头</h3>
+                        <img id="wristCamera" src="/api/video/wrist" alt="腕部摄像头" class="video-feed">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 控制区域 -->
+            <section class="control-section">
+                <!-- 控制模式选择 -->
+                <div class="mode-selector">
+                    <button id="modeGamepad" class="mode-btn active" data-mode="gamepad">🎮 手柄控制</button>
+                    <button id="modeGesture" class="mode-btn" data-mode="gesture">✋ 手势控制</button>
+                    <button id="modeFace" class="mode-btn" data-mode="face">👤 人脸追踪</button>
+                </div>
+
+                <!-- 手柄控制面板 -->
+                <div id="gamepadPanel" class="control-panel active">
+                    <div class="control-grid">
+                        <!-- 移动控制 -->
+                        <div class="control-group">
+                            <h4>移动控制</h4>
+                            <div class="direction-pad">
+                                <button class="dir-btn" data-direction="forward">▲</button>
+                                <div class="dir-row">
+                                    <button class="dir-btn" data-direction="left">◀</button>
+                                    <button class="dir-btn stop" data-direction="stop">⬛</button>
+                                    <button class="dir-btn" data-direction="right">▶</button>
+                                </div>
+                                <button class="dir-btn" data-direction="backward">▼</button>
+                            </div>
+                        </div>
+
+                        <!-- 旋转控制 -->
+                        <div class="control-group">
+                            <h4>旋转控制</h4>
+                            <div class="rotate-btns">
+                                <button class="rotate-btn" data-direction="rotate_left">↺ 左转</button>
+                                <button class="rotate-btn" data-direction="rotate_right">↻ 右转</button>
+                            </div>
+                        </div>
+
+                        <!-- 机械臂控制 -->
+                        <div class="control-group">
+                            <h4>机械臂控制</h4>
+                            <div class="arm-btns">
+                                <button class="arm-btn" data-action="reset">🔄 复位</button>
+                                <button class="arm-btn" data-action="open_gripper">✋ 开夹</button>
+                                <button class="arm-btn" data-action="close_gripper">✊ 合夹</button>
+                            </div>
+                        </div>
+
+                        <!-- 速度控制 -->
+                        <div class="control-group">
+                            <h4>速度控制</h4>
+                            <div class="speed-btns">
+                                <button id="speedDown" class="speed-btn">➖ 减速</button>
+                                <button id="speedUp" class="speed-btn">➕ 加速</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手势控制面板 -->
+                <div id="gesturePanel" class="control-panel">
+                    <div class="gesture-container">
+                        <video id="gestureVideo" class="gesture-video" autoplay playsinline></video>
+                        <canvas id="gestureCanvas" class="gesture-canvas"></canvas>
+                        <div id="gestureResult" class="gesture-result">
+                            <span class="gesture-icon">✋</span>
+                            <span class="gesture-text">等待手势...</span>
+                        </div>
+                    </div>
+                    <div class="gesture-hints">
+                        <p>✋ 张开手掌 = 停止</p>
+                        <p>✊ 握拳 = 关闭夹爪</p>
+                        <p>☝️ 竖起食指 = 前进</p>
+                        <p>👍 竖起大拇指 = 打开夹爪</p>
+                    </div>
+                </div>
+
+                <!-- 人脸追踪面板 -->
+                <div id="facePanel" class="control-panel">
+                    <div class="face-container">
+                        <video id="faceVideo" class="face-video" autoplay playsinline></video>
+                        <canvas id="faceCanvas" class="face-canvas"></canvas>
+                        <div id="faceResult" class="face-result">
+                            <span class="face-text">未检测到人脸</span>
+                        </div>
+                    </div>
+                    <p class="face-hint">机器人将自动追踪您的脸部位置</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- 键盘快捷键提示 -->
+        <footer class="footer">
+            <div class="shortcuts">
+                <span>快捷键: </span>
+                <span><kbd>W</kbd>/<kbd>↑</kbd> 前进</span>
+                <span><kbd>S</kbd>/<kbd>↓</kbd> 后退</span>
+                <span><kbd>A</kbd>/<kbd>←</kbd> 左移</span>
+                <span><kbd>D</kbd>/<kbd>→</kbd> 右移</span>
+                <span><kbd>Q</kbd> 左转</span>
+                <span><kbd>E</kbd> 右转</span>
+                <span><kbd>Space</kbd> 停止</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
