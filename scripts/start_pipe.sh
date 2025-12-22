@@ -2,8 +2,8 @@
 
 # MCP 管道启动脚本
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # 检查必要的环境变量
 if [ -z "$MCP_ENDPOINT" ]; then
@@ -18,6 +18,7 @@ export MCP_CONFIG="$PROJECT_ROOT/config/mcp_config.json"
 
 echo "🔗 启动 MCP 管道..."
 echo "连接地址: $MCP_ENDPOINT"
+echo "项目路径: $PROJECT_ROOT"
 
 python -c "
 import asyncio
@@ -30,4 +31,3 @@ pipe = MCPPipe(
 )
 asyncio.run(pipe.run())
 "
-

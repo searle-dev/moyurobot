@@ -7,8 +7,8 @@
 set -e
 
 # 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -74,25 +74,6 @@ check_dependencies() {
         log_warn "Flask 未安装，正在安装..."
         pip install flask flask-cors
     }
-    
-    python -c "import fastmcp" 2>/dev/null || {
-        log_warn "FastMCP 未安装，正在安装..."
-        pip install fastmcp
-    }
-}
-
-# 启动 MCP 服务器
-start_mcp_server() {
-    log_header "启动 MCP 服务器"
-    
-    cd "$PROJECT_ROOT/src"
-    
-    export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
-    
-    python -m moyurobot.mcp.server &
-    MCP_PID=$!
-    
-    log_info "MCP 服务器已启动 (PID: $MCP_PID)"
 }
 
 # 启动 Web 控制器
@@ -114,45 +95,17 @@ run_server(host='0.0.0.0', port=8080)
     log_info "访问地址: http://localhost:8080"
 }
 
-# 启动 MCP 管道（可选）
-start_mcp_pipe() {
-    if [ -z "$MCP_ENDPOINT" ]; then
-        log_warn "未设置 MCP_ENDPOINT，跳过 MCP 管道启动"
-        return
-    fi
-    
-    log_header "启动 MCP 管道"
-    
-    cd "$PROJECT_ROOT/src"
-    
-    export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
-    export MCP_CONFIG="$PROJECT_ROOT/config/mcp_config.json"
-    
-    python -c "
-import asyncio
-from moyurobot.mcp.pipe import MCPPipe
-
-pipe = MCPPipe(endpoint_url='$MCP_ENDPOINT')
-asyncio.run(pipe.run())
-" &
-    PIPE_PID=$!
-    
-    log_info "MCP 管道已启动 (PID: $PIPE_PID)"
-}
-
 # 显示使用说明
 show_usage() {
     log_header "摸鱼遥控车 - 使用说明"
     
     echo "服务已启动："
-    echo "  - MCP 服务器: 通过 stdio 接收 AI 命令"
     echo "  - Web 控制器: http://localhost:8080"
     echo ""
     echo "默认密码: moyu123"
     echo ""
     echo "环境变量:"
     echo "  - WEB_PASSWORD: Web 登录密码"
-    echo "  - MCP_ENDPOINT: MCP 管道 WebSocket 地址"
     echo ""
     echo "按 Ctrl+C 停止所有服务"
 }
@@ -161,31 +114,12 @@ show_usage() {
 main() {
     log_header "🐟 摸鱼遥控车 启动中..."
     
+    log_info "项目路径: $PROJECT_ROOT"
+    
     check_python
     check_dependencies
     
-    # 根据参数启动不同服务
-    case "${1:-all}" in
-        mcp)
-            start_mcp_server
-            ;;
-        web)
-            start_web_controller
-            ;;
-        pipe)
-            start_mcp_pipe
-            ;;
-        all)
-            start_mcp_server
-            sleep 1
-            start_web_controller
-            start_mcp_pipe
-            ;;
-        *)
-            echo "用法: $0 [mcp|web|pipe|all]"
-            exit 1
-            ;;
-    esac
+    start_web_controller
     
     show_usage
     
@@ -194,4 +128,3 @@ main() {
 }
 
 main "$@"
-
