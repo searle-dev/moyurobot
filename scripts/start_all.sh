@@ -160,6 +160,34 @@ wait_for_web_server() {
     exit 1
 }
 
+# 等待 MCP HTTP 服务器就绪
+wait_for_mcp_server() {
+    log_info "等待 MCP HTTP 服务器启动..."
+    
+    MAX_RETRIES=30
+    RETRY_COUNT=0
+    
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        # 检查进程是否还在运行
+        if ! kill -0 $WEB_PID 2>/dev/null; then
+            log_error "Web 服务器进程意外退出！"
+            exit 1
+        fi
+        
+        # 检查 MCP 端点是否可用
+        if curl -s -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -d '{}' > /dev/null 2>&1; then
+            log_info "✓ MCP HTTP 服务器已就绪!"
+            return 0
+        fi
+        
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        printf "  等待中... (%d/%d)\r" "$RETRY_COUNT" "$MAX_RETRIES"
+        sleep 1
+    done
+    
+    log_warn "MCP HTTP 服务器启动超时，但继续启动 pipe 服务"
+}
+
 # 启动 MCP 管道服务
 start_mcp_pipe() {
     log_header "启动 MCP 管道服务"
