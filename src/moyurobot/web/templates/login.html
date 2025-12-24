@@ -1,160 +1,66 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
+    <title>登录摸鱼</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>摸鱼遥控车 - 登录</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: { 850: '#1f2937', 900: '#111827', 950: '#030712' },
+                        tech: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                    }
+                }
+            }
         }
-
-        body {
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .login-container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 50px 40px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo-icon {
-            font-size: 64px;
-            margin-bottom: 15px;
-            display: block;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .logo-text {
-            color: #fff;
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: 2px;
-        }
-
-        .logo-subtitle {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            margin-top: 8px;
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            font-size: 16px;
-            color: #fff;
-            transition: all 0.3s ease;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #4fc3f7;
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 20px rgba(79, 195, 247, 0.2);
-        }
-
-        .input-group input::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .submit-btn {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a1a2e;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(79, 195, 247, 0.4);
-        }
-
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .error-message {
-            color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.15);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            padding: 12px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .footer-text {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 12px;
-            margin-top: 30px;
-        }
-    </style>
+    </script>
 </head>
-<body>
-    <div class="login-container">
-        <div class="logo">
-            <span class="logo-icon">🐟</span>
-            <div class="logo-text">摸鱼遥控车</div>
-            <div class="logo-subtitle">MoYu Robot Control System</div>
-        </div>
+<body class="bg-gray-950 h-screen w-screen flex items-center justify-center font-sans p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900 via-gray-950 to-black">
 
-        <form class="login-form" method="post">
-            {% if error %}
-            <div class="error-message">{{ error }}</div>
-            {% endif %}
-            
-            <div class="input-group">
-                <input type="password" name="password" placeholder="请输入访问密码" required autofocus>
+    <div class="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden relative group">
+        
+        <div class="absolute top-0 left-0 w-full h-1 bg-tech-500 shadow-[0_0_15px_rgba(14,165,233,0.6)]"></div>
+
+        <div class="p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-white tracking-tight mb-2">⚡️ 赛博摸鱼 <span class="text-tech-500">控制台</span></h1>
+                <p class="text-sm text-gray-500">警告：工作时间请在老板视线盲区操作</p>
             </div>
 
-            <button type="submit" class="submit-btn">🚀 进入控制台</button>
-        </form>
+            <form method="post" class="space-y-6">
+                <div class="space-y-2">
+                    <label for="username" class="block text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">
+                        请输入摸鱼代号
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="username" name="username" placeholder="Eg. 摸鱼大队长" autofocus 
+                               class="w-full bg-gray-950 text-gray-100 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-tech-500 focus:ring-1 focus:ring-tech-500 transition-all placeholder-gray-700 text-sm font-medium">
+                    </div>
+                </div>
 
-        <p class="footer-text">© 2024 MoYu Robot Team</p>
+                <button type="submit" 
+                        class="w-full bg-tech-600 hover:bg-tech-500 text-white font-bold py-3 px-4 rounded-lg transition-all transform active:scale-[0.98] shadow-lg shadow-tech-900/30 flex items-center justify-center gap-2 group-hover:shadow-tech-500/20">
+                    <span>🚀 注入灵魂</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </form>
+
+            {% if error %}
+            <div class="mt-6 p-3 bg-red-900/20 border border-red-900/50 rounded-lg flex items-start gap-3">
+                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-sm text-red-400 font-medium">{{ error }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="px-8 py-4 bg-gray-950/50 border-t border-gray-800 text-center">
+            <p class="text-[10px] text-gray-600 font-mono uppercase">System Ready // 摸鱼协议已激活</p>
+        </div>
     </div>
+
 </body>
 </html>
-

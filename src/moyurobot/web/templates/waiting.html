@@ -1,139 +1,473 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
+    <title>摸鱼排队中</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>摸鱼遥控车 - 连接中</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .waiting-container {
-            text-align: center;
-            color: #fff;
-        }
-
-        .robot-icon {
-            font-size: 100px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.7; }
-        }
-
-        .loading-text {
-            font-size: 24px;
-            margin-top: 30px;
-            font-weight: 300;
-        }
-
-        .loading-dots {
-            display: inline-flex;
-            gap: 8px;
-            margin-top: 20px;
-        }
-
-        .loading-dots span {
-            width: 12px;
-            height: 12px;
-            background: #4fc3f7;
-            border-radius: 50%;
-            animation: bounce 1.4s ease-in-out infinite both;
-        }
-
-        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-        .loading-dots span:nth-child(3) { animation-delay: 0s; }
-
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
-
-        .status-message {
-            margin-top: 40px;
-            padding: 15px 25px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .retry-btn {
-            margin-top: 30px;
-            padding: 12px 30px;
-            background: transparent;
-            border: 2px solid #4fc3f7;
-            border-radius: 25px;
-            color: #4fc3f7;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .retry-btn:hover {
-            background: #4fc3f7;
-            color: #1a1a2e;
-        }
-    </style>
-</head>
-<body>
-    <div class="waiting-container">
-        <div class="robot-icon">🤖</div>
-        <div class="loading-text">正在连接机器人...</div>
-        <div class="loading-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
-        <div class="status-message" id="statusMessage">
-            正在初始化机器人服务，请稍候...
-        </div>
-        <button class="retry-btn" onclick="checkConnection()">重新检查连接</button>
-    </div>
-
+    <!-- TCPlayer CSS -->
+    <link href="https://web.sdk.qcloud.com/player/tcplayer/release/v4.9.1/tcplayer.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        let checkInterval;
-
-        async function checkConnection() {
-            try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-                
-                if (data.connected) {
-                    document.getElementById('statusMessage').textContent = '连接成功！正在跳转...';
-                    clearInterval(checkInterval);
-                    window.location.href = '/';
-                } else {
-                    document.getElementById('statusMessage').textContent = 
-                        '等待机器人连接: ' + (data.message || '请确保机器人已开机');
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: { 850: '#1f2937', 900: '#111827', 950: '#030712' },
+                        tech: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        amber: { 400: '#fbbf24', 500: '#f59e0b', 900: '#78350f' },
+                        purple: { 400: '#a78bfa', 500: '#8b5cf6', 900: '#4c1d95' },
+                        green: { 400: '#4ade80', 500: '#22c55e', 900: '#14532d' },
+                    },
+                    fontFamily: {
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    }
                 }
-            } catch (error) {
-                document.getElementById('statusMessage').textContent = 
-                    '连接检查失败: ' + error.message;
             }
         }
-
-        // 每3秒检查一次连接状态
-        checkInterval = setInterval(checkConnection, 3000);
+    </script>
+</head>
+<body class="bg-gray-950 text-gray-300 min-h-screen w-screen font-sans p-4 md:p-8 flex items-center justify-center overflow-x-hidden">
+    
+    <div class="w-full max-w-[1800px] grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         
-        // 页面加载时立即检查
-        checkConnection();
+        <div class="lg:col-span-4 flex flex-col" style="position: relative; z-index: 1;">
+            <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden relative flex-1 flex flex-col" style="z-index: 1;">
+                <div class="h-1.5 w-full bg-gradient-to-r from-amber-500 via-orange-500 to-red-600"></div>
+                
+                <div class="p-8 flex-1 flex flex-col items-center">
+                    
+                    <div class="mb-6 relative">
+                        <div class="w-20 h-20 rounded-full bg-gray-950 flex items-center justify-center border border-gray-700 z-10 relative shadow-inner">
+                            <span class="text-4xl">🔒</span>
+                        </div>
+                        <div class="absolute inset-0 rounded-full bg-amber-500/20 animate-ping"></div>
+                        <div class="absolute -inset-2 rounded-full border border-dashed border-amber-500/30 animate-[spin_10s_linear_infinite]"></div>
+                    </div>
+
+                    <h2 class="text-2xl font-bold text-white tracking-wide mb-2">摸鱼队列排号中...</h2>
+                    <p class="text-sm text-gray-500 mb-8">前面的兄弟玩得正嗨，请稍安勿躁，准备接手控制权！</p>
+
+                    <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                        <div class="bg-gray-950/50 rounded-xl p-4 border border-gray-800 flex flex-col items-center justify-center">
+                            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">当前正在爽的人</div>
+                            <div class="text-lg font-bold text-white flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse"></span>
+                                <span class="truncate max-w-[120px]">{{ current_owner or '神秘人' }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-950/50 rounded-xl p-4 border border-gray-800 flex flex-col items-center justify-center">
+                            <div class="text-[10px] text-amber-500 uppercase tracking-wider mb-2">强制下线倒计时</div>
+                            <div class="text-2xl font-mono font-bold text-amber-400 tabular-nums drop-shadow-[0_0_5px_rgba(251,191,36,0.3)]">
+                                <span id="lockout-remaining">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 获取控制权按钮 -->
+                    <div class="mb-4 flex justify-center">
+                        <a href="/" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 no-underline text-center flex items-center justify-center gap-2">
+                            <span>🔄 我要上位</span>
+                        </a>
+                    </div>
+
+                    <div class="w-full max-h-[240px] overflow-y-auto pr-2 custom-scrollbar" style="z-index: 1;">
+                        <div class="sticky top-0 bg-gray-900/95 backdrop-blur pb-2 mb-2 border-b border-gray-800 flex justify-between items-center" style="z-index: 1;">
+                            <h3 class="text-xs font-bold text-gray-400 uppercase flex items-center gap-2">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                等待队列 ({{ waiting_users|length }})
+                            </h3>
+                        </div>
+                        
+                        {% if waiting_users %}
+                            <ul class="space-y-2">
+                                {% for user in waiting_users %}
+                                <li class="flex items-center justify-between px-4 py-3 rounded-lg border transition-all group
+                                           {{ 'bg-tech-900/20 border-tech-500/30 text-tech-400 shadow-[0_0_10px_rgba(14,165,233,0.1)]' if requesting_user == user else 'bg-gray-800/30 border-gray-800/50 text-gray-500 hover:border-gray-700' }}">
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-mono text-xs opacity-50 group-hover:text-gray-300 transition-colors">{{ loop.index }}</span>
+                                        <span class="font-medium text-sm group-hover:text-gray-200 transition-colors">{{ user }}</span>
+                                    </div>
+                                    {% if requesting_user == user %}
+                                    <span class="text-[10px] bg-tech-500/20 px-2 py-0.5 rounded text-tech-400 font-bold border border-tech-500/20">我</span>
+                                    {% else %}
+                                    <span class="text-[10px] text-gray-600">等待中</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-800 rounded-xl bg-gray-950/20 text-gray-600">
+                                <div class="text-2xl mb-2 grayscale opacity-30">☕</div>
+                                <p class="text-xs">别急，你是天选之子，下一个就是你</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-8 flex flex-col gap-4" style="position: relative; z-index: 50;">
+            <!-- 流媒体播放器 -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 overflow-hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-gray-400 tracking-wide uppercase flex items-center gap-2">
+                        <span class="text-lg">📺</span>
+                        实时直播
+                    </h3>
+                    <span class="text-[10px] text-green-500 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">LIVE</span>
+                </div>
+                <!-- 16:9 容器 -->
+                <div class="w-full bg-black rounded-lg overflow-hidden relative" style="padding-bottom: 56.25%;">
+                    <video id="player-container-id" preload="auto" width="100%" height="100%" playsinline webkit-playsinline class="absolute top-0 left-0 w-full h-full"></video>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between px-2">
+                <h3 class="text-sm font-bold text-gray-400 tracking-wide uppercase">赞助商广告</h3>
+                <span class="text-[10px] text-gray-600 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">AD</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <a href="https://fsd.alipay.com/" target="_blank" rel="noopener noreferrer" class="h-36 bg-white border border-gray-300 rounded-xl p-3 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-blue-500 hover:shadow-lg transition-all group cursor-pointer no-underline">
+                    <div class="w-12 h-12 mb-2 group-hover:scale-110 transition-transform flex items-center justify-center">
+                        <img src="https://mass-office.alipay.com/huamei_koqzbu/afts/img/oFrCQ7FgFzwAAAAAQaAAABgAenV5AQBr/fmt.avif" 
+                             alt="玲珑FSD" 
+                             class="w-full h-full object-contain"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-blue-100 rounded-full items-center justify-center hidden">
+                            <span class="text-2xl">💡</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-900 font-bold mb-1">玲珑FSD</div>
+                    <p class="text-xs text-gray-500 leading-tight mb-2 scale-90">支付宝业务理解专家</p>
+                    <div class="text-[10px] font-mono text-blue-600 opacity-80 group-hover:opacity-100">立即了解 →</div>
+                </a>
+
+                <a href="https://ideax.alipay.com/" target="_blank" rel="noopener noreferrer" class="h-36 bg-white border border-gray-300 rounded-xl p-3 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-blue-500 hover:shadow-lg transition-all group cursor-pointer no-underline">
+                    <div class="w-12 h-12 mb-2 group-hover:scale-110 transition-transform flex items-center justify-center">
+                        <img src="https://mass-office.alipay.com/huamei_koqzbu/afts/img/PxpGQpDcUZ4AAAAAAAAAABAADnV5AQBr/original" 
+                             alt="IDEX" 
+                             class="w-full h-full object-contain"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-gray-100 rounded-full items-center justify-center hidden">
+                            <span class="text-2xl">💡</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-900 font-bold mb-1">IDEAX</div>
+                    <p class="text-xs text-gray-500 leading-tight mb-2 scale-90">今天想创作些什么?</p>
+                    <div class="text-[10px] font-mono text-blue-600 opacity-80 group-hover:opacity-100">立即了解 →</div>
+                </a>
+
+                <div class="h-36 bg-white border border-dashed border-gray-300 rounded-xl p-3 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-gray-400 hover:shadow-lg transition-all group cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <span class="text-xl">📢</span>
+                    </div>
+                    <div class="text-sm text-gray-900 font-bold mb-2">广告位招租</div>
+                    <div class="text-[10px] font-mono text-gray-500 opacity-70 group-hover:opacity-100">联系管理员</div>
+                </div>
+
+                <div class="h-36 bg-white border border-dashed border-gray-300 rounded-xl p-3 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-gray-400 hover:shadow-lg transition-all group cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <span class="text-xl">📢</span>
+                    </div>
+                    <div class="text-sm text-gray-900 font-bold mb-2">广告位招租</div>
+                    <div class="text-[10px] font-mono text-gray-500 opacity-70 group-hover:opacity-100">联系管理员</div>
+                </div>
+            </div>
+            
+            <!-- 贪食蛇小游戏 -->
+            <div class="mt-6 bg-white border border-gray-300 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                        <span class="text-lg">🐍</span>
+                        等待时练手速，摸鱼更专业
+                    </h3>
+                    <div class="flex items-center gap-4 text-xs text-gray-700">
+                        <span>得分: <span id="snake-score" class="text-blue-600 font-bold">0</span></span>
+                        <button id="snake-restart" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 border border-gray-300 rounded text-gray-800 transition-colors">重新开始</button>
+                    </div>
+                </div>
+                <div class="flex justify-center">
+                    <canvas id="snake-game" width="400" height="400" class="bg-white border border-gray-300 rounded-lg"></canvas>
+                </div>
+                <div class="mt-3 text-center text-xs text-gray-600">
+                    使用方向键或 WASD 控制
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* 自定义滚动条，让列表更精致 */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #111827; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        
+        /* TCPlayer 响应式样式 */
+        #player-container-id {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            top: 0;
+            left: 0;
+            background: #000 !important;
+        }
+        
+        /* 确保 TCPlayer 容器填充 */
+        .tcplayer {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        @media screen and (max-width: 480px) {
+            /* 移动端样式适配 */
+        }
+    </style>
+
+    <!-- TCPlayer JS -->
+    <script src="https://video.sdk.qcloudecdn.com/web/TXLivePlayer-1.3.2.min.js"></script>
+    <script src="https://web.sdk.qcloud.com/player/tcplayer/release/v4.9.1/tcplayer.v4.9.1.min.js"></script>
+    
+    <script>
+    // 初始化 TCPlayer - 确保在 DOM 和库都加载完成后再初始化
+    function initTCPlayer() {
+        const playerContainer = document.getElementById('player-container-id');
+        if (playerContainer && typeof TCPlayer !== 'undefined') {
+            try {
+                var player = TCPlayer("player-container-id", {
+                    sources: ['webrtc://vodeo.mycodebro.cn/live/moyu'],
+                    autoplay: true,
+                    muted: true, // 静音才能在 Chrome 中自动播放
+                    width: '100%',
+                    height: '100%',
+                    controls: true
+                });
+                console.log('TCPlayer 初始化成功');
+            } catch (error) {
+                console.error('TCPlayer 初始化失败:', error);
+            }
+        } else if (playerContainer && typeof TCPlayer === 'undefined') {
+            // 如果 TCPlayer 还没加载，等待一下再试
+            setTimeout(initTCPlayer, 100);
+        }
+    }
+    
+    // 页面加载时滚动到顶部
+    window.addEventListener('load', function() {
+        window.scrollTo(0, 0);
+    });
+    // 立即执行一次，防止页面已经加载完成
+    if (document.readyState === 'complete') {
+        window.scrollTo(0, 0);
+        initTCPlayer();
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            window.scrollTo(0, 0);
+            initTCPlayer();
+        });
+    }
+    
+    // 也监听 window.load 事件，确保所有资源都加载完成
+    window.addEventListener('load', function() {
+        initTCPlayer();
+    });
+    
+    (function() {
+        let remaining = parseInt('{{ remaining_seconds | default(0) }}', 10);
+        const display = document.getElementById('lockout-remaining');
+
+        function formatTime(sec) {
+            const s = Math.max(0, Math.floor(sec));
+            const m = String(Math.floor(s / 60)).padStart(2, '0');
+            const rest = String(s % 60).padStart(2, '0');
+            return m + ':' + rest;
+        }
+
+        function tick() {
+            if (!display) return;
+            display.textContent = formatTime(remaining);
+            if (remaining <= 0) {
+                return;
+            }
+            remaining -= 1;
+            setTimeout(tick, 1000);
+        }
+
+        tick();
+    })();
+    
+    // 贪食蛇游戏
+    (function() {
+        const canvas = document.getElementById('snake-game');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('snake-score');
+        const restartBtn = document.getElementById('snake-restart');
+        
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+        
+        let snake = [{x: 10, y: 10}];
+        let food = {x: 15, y: 15};
+        let dx = 0;
+        let dy = 0;
+        let score = 0;
+        let gameRunning = true;
+        
+        function randomFood() {
+            food = {
+                x: Math.floor(Math.random() * tileCount),
+                y: Math.floor(Math.random() * tileCount)
+            };
+        }
+        
+        function drawGame() {
+            clearCanvas();
+            drawSnake();
+            drawFood();
+            drawScore();
+        }
+        
+        function clearCanvas() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function drawSnake() {
+            ctx.fillStyle = '#0ea5e9';
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    ctx.fillStyle = '#38bdf8';
+                } else {
+                    ctx.fillStyle = '#0ea5e9';
+                }
+                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+        }
+        
+        function drawFood() {
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+        }
+        
+        function drawScore() {
+            if (scoreEl) {
+                scoreEl.textContent = score;
+            }
+        }
+        
+        function moveSnake() {
+            // 如果还没有开始移动（dx和dy都是0），不移动蛇
+            if (dx === 0 && dy === 0) {
+                return;
+            }
+            
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver();
+                return;
+            }
+            
+            if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+            
+            snake.unshift(head);
+            
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                randomFood();
+            } else {
+                snake.pop();
+            }
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ef4444';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('游戏结束!', canvas.width / 2, canvas.height / 2 - 20);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.fillText(`得分: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+        }
+        
+        function gameLoop() {
+            if (gameRunning) {
+                moveSnake();
+                drawGame();
+            }
+        }
+        
+        function resetGame() {
+            snake = [{x: 10, y: 10}];
+            dx = 0;
+            dy = 0;
+            score = 0;
+            gameRunning = true;
+            randomFood();
+            drawGame();
+        }
+        
+        function handleKeyDown(e) {
+            if (!gameRunning) return;
+            
+            const key = e.key.toLowerCase();
+            const code = e.code.toLowerCase();
+            
+            // 处理方向键和WASD
+            let handled = false;
+            if (key === 'arrowup' || key === 'w' || code === 'keyw' || code === 'arrowup') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (dy !== 1) { dx = 0; dy = -1; handled = true; }
+            } else if (key === 'arrowdown' || key === 's' || code === 'keys' || code === 'arrowdown') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (dy !== -1) { dx = 0; dy = 1; handled = true; }
+            } else if (key === 'arrowleft' || key === 'a' || code === 'keya' || code === 'arrowleft') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (dx !== 1) { dx = -1; dy = 0; handled = true; }
+            } else if (key === 'arrowright' || key === 'd' || code === 'keyd' || code === 'arrowright') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (dx !== -1) { dx = 1; dy = 0; handled = true; }
+            }
+            
+        }
+        
+        // 在document上监听，使用捕获阶段确保优先处理
+        document.addEventListener('keydown', handleKeyDown, true);
+        
+        // 让canvas可以接收焦点
+        canvas.setAttribute('tabindex', '0');
+        canvas.style.outline = 'none'; // 移除焦点时的边框
+        
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                resetGame();
+                canvas.focus(); // 重新开始后聚焦到canvas
+            });
+        }
+        
+        // 点击canvas时聚焦，确保能接收键盘事件
+        canvas.addEventListener('click', () => {
+            canvas.focus();
+        });
+        
+        randomFood();
+        drawGame();
+        canvas.focus(); // 初始化时聚焦到canvas
+        setInterval(gameLoop, 150);
+    })();
     </script>
 </body>
 </html>
-

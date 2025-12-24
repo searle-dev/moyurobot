@@ -1,146 +1,280 @@
+
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
-    <meta charset="UTF-8">
+    <title>摸鱼遥控车控制台</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>摸鱼遥控车 - 控制面板</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MediaPipe Dependencies -->
+    <script src="https://image.mycodebro.cn/mediapipe/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://image.mycodebro.cn/mediapipe/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://image.mycodebro.cn/mediapipe/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://image.mycodebro.cn/mediapipe/hands.js" crossorigin="anonymous"></script>
+    <script src="https://image.mycodebro.cn/mediapipe/face_mesh.js" crossorigin="anonymous"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: { 850: '#1f2937', 900: '#111827', 950: '#030712' }, // 更深的背景
+                        tech: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' }, // 科技蓝
+                    },
+                    fontFamily: {
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 极简滑块样式 */
+        input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; height: 14px; width: 14px; border-radius: 2px;
+            background: #38bdf8; cursor: pointer; margin-top: -5px;
+            box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer; background: #374151; border-radius: 2px;
+        }
+        /* 禁止文本被选中，提升按钮连点体验 */
+        body { user-select: none; -webkit-user-select: none; }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <!-- 顶部状态栏 -->
-        <header class="header">
-            <div class="logo">🐟 摸鱼遥控车</div>
-            <div class="status-bar">
-                <span id="connectionStatus" class="status disconnected">● 连接中...</span>
-                <span id="speedLevel" class="speed-level">速度: 中速</span>
+<body class="bg-gray-950 text-gray-300 h-screen w-screen overflow-hidden flex flex-col font-sans">
+
+    <header class="h-14 flex-none bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6 z-20 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="w-2 h-8 bg-tech-500 rounded-sm shadow-[0_0_8px_rgba(14,165,233,0.6)]"></div>
+            <div>
+                <h1 class="text-lg font-bold text-white tracking-wider leading-tight">摸鱼遥控车 <span class="text-tech-500">驾驶舱</span></h1>
+                <div class="text-[10px] text-gray-500 font-mono uppercase tracking-[0.2em]">REMOTE DRIVE SYS // ONLINE</div>
             </div>
-            <button id="logoutBtn" class="logout-btn">退出</button>
-        </header>
+        </div>
 
-        <!-- 主内容区 -->
-        <main class="main-content">
-            <!-- 视频显示区域 -->
-            <section class="video-section">
-                <div class="video-container">
-                    <div class="video-wrapper">
-                        <h3>前置摄像头</h3>
-                        <img id="frontCamera" src="/api/video/front" alt="前置摄像头" class="video-feed">
-                    </div>
-                    <div class="video-wrapper">
-                        <h3>腕部摄像头</h3>
-                        <img id="wristCamera" src="/api/video/wrist" alt="腕部摄像头" class="video-feed">
-                    </div>
-                </div>
-            </section>
-
-            <!-- 控制区域 -->
-            <section class="control-section">
-                <!-- 控制模式选择 -->
-                <div class="mode-selector">
-                    <button id="modeGamepad" class="mode-btn active" data-mode="gamepad">🎮 手柄控制</button>
-                    <button id="modeGesture" class="mode-btn" data-mode="gesture">✋ 手势控制</button>
-                    <button id="modeFace" class="mode-btn" data-mode="face">👤 人脸追踪</button>
-                </div>
-
-                <!-- 手柄控制面板 -->
-                <div id="gamepadPanel" class="control-panel active">
-                    <div class="control-grid">
-                        <!-- 移动控制 -->
-                        <div class="control-group">
-                            <h4>移动控制</h4>
-                            <div class="direction-pad">
-                                <button class="dir-btn" data-direction="forward">▲</button>
-                                <div class="dir-row">
-                                    <button class="dir-btn" data-direction="left">◀</button>
-                                    <button class="dir-btn stop" data-direction="stop">⬛</button>
-                                    <button class="dir-btn" data-direction="right">▶</button>
-                                </div>
-                                <button class="dir-btn" data-direction="backward">▼</button>
-                            </div>
-                        </div>
-
-                        <!-- 旋转控制 -->
-                        <div class="control-group">
-                            <h4>旋转控制</h4>
-                            <div class="rotate-btns">
-                                <button class="rotate-btn" data-direction="rotate_left">↺ 左转</button>
-                                <button class="rotate-btn" data-direction="rotate_right">↻ 右转</button>
-                            </div>
-                        </div>
-
-                        <!-- 机械臂控制 -->
-                        <div class="control-group">
-                            <h4>机械臂控制</h4>
-                            <div class="arm-btns">
-                                <button class="arm-btn" data-action="reset">🔄 复位</button>
-                                <button class="arm-btn" data-action="open_gripper">✋ 开夹</button>
-                                <button class="arm-btn" data-action="close_gripper">✊ 合夹</button>
-                            </div>
-                        </div>
-
-                        <!-- 速度控制 -->
-                        <div class="control-group">
-                            <h4>速度控制</h4>
-                            <div class="speed-btns">
-                                <button id="speedDown" class="speed-btn">➖ 减速</button>
-                                <button id="speedUp" class="speed-btn">➕ 加速</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 手势控制面板 -->
-                <div id="gesturePanel" class="control-panel">
-                    <div class="gesture-container">
-                        <video id="gestureVideo" class="gesture-video" autoplay playsinline></video>
-                        <canvas id="gestureCanvas" class="gesture-canvas"></canvas>
-                        <div id="gestureResult" class="gesture-result">
-                            <span class="gesture-icon">✋</span>
-                            <span class="gesture-text">等待手势...</span>
-                        </div>
-                    </div>
-                    <div class="gesture-hints">
-                        <p>✋ 张开手掌 = 停止</p>
-                        <p>✊ 握拳 = 关闭夹爪</p>
-                        <p>☝️ 竖起食指 = 前进</p>
-                        <p>👍 竖起大拇指 = 打开夹爪</p>
-                    </div>
-                </div>
-
-                <!-- 人脸追踪面板 -->
-                <div id="facePanel" class="control-panel">
-                    <div class="face-container">
-                        <video id="faceVideo" class="face-video" autoplay playsinline></video>
-                        <canvas id="faceCanvas" class="face-canvas"></canvas>
-                        <div id="faceResult" class="face-result">
-                            <span class="face-text">未检测到人脸</span>
-                        </div>
-                    </div>
-                    <p class="face-hint">机器人将自动追踪您的脸部位置</p>
-                </div>
-            </section>
-        </main>
-
-        <!-- 键盘快捷键提示 -->
-        <footer class="footer">
-            <div class="shortcuts">
-                <span>快捷键: </span>
-                <span><kbd>W</kbd>/<kbd>↑</kbd> 前进</span>
-                <span><kbd>S</kbd>/<kbd>↓</kbd> 后退</span>
-                <span><kbd>A</kbd>/<kbd>←</kbd> 左移</span>
-                <span><kbd>D</kbd>/<kbd>→</kbd> 右移</span>
-                <span><kbd>Q</kbd> 左转</span>
-                <span><kbd>E</kbd> 右转</span>
-                <span><kbd>Space</kbd> 停止</span>
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 text-xs font-mono text-gray-300 bg-gray-950/50 px-3 py-1.5 rounded border border-gray-800">
+                <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_6px_#22c55e]"></span>
+                <span class="text-tech-400 font-semibold">驾驶员: {{ username or '未知用户' }}</span>
             </div>
-        </footer>
+            
+            <div id="status" class="flex items-center gap-2 text-xs font-mono text-gray-400 bg-gray-950/50 px-3 py-1.5 rounded border border-gray-800">
+                <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                系统状态: 检测中...
+            </div>
+            
+            <div id="session-timer" class="hidden flex items-center gap-2 border-l border-gray-700 pl-4">
+                <span class="text-[10px] text-gray-500 uppercase">剩余燃料:</span>
+                <span id="session-remaining" class="text-tech-400 font-mono font-bold text-lg">--:--</span>
+            </div>
+            
+            <!-- 退出控制按钮 -->
+            <button onclick="exitControl()" class="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg border border-red-500 transition-all shadow-lg hover:shadow-red-500/30 active:scale-95 flex items-center gap-2">
+                <span class="text-xs">⏏️</span> 退出控制
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- 摄像头区域 - 靠左边 -->
+        <section class="flex-1 flex flex-col bg-black relative order-1 lg:order-1">
+            
+            <!-- 手腕摄像头 (现在放在上面) -->
+            <div class="h-1/2 relative border-b border-gray-800 group overflow-hidden">
+                <img id="wrist-camera" src="{{ url_for('video_feed', camera='wrist') }}" class="w-full h-full object-contain bg-gray-950" onerror="this.style.display='none'" />
+                
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
+                    <span class="text-xs text-gray-700 font-mono">无信号 - 手腕</span>
+                </div>
+
+                <div class="absolute top-3 left-3 flex items-center gap-2 bg-black/40 backdrop-blur px-2 py-1 rounded border border-white/10">
+                    <div class="w-1.5 h-1.5 rounded-full bg-tech-500 shadow-[0_0_5px_#0ea5e9]"></div>
+                    <span class="text-[10px] font-bold text-white tracking-wide">手腕摄像头</span>
+                </div>
+            </div>
+
+            <!-- 前置摄像头 (现在放在下面，默认关闭) -->
+            <div class="h-1/2 relative group overflow-hidden">
+                <img id="front-camera" data-src="{{ url_for('video_feed', camera='front') }}" class="w-full h-full object-contain bg-gray-950 hidden" />
+                
+                <!-- 播放按钮遮罩 -->
+                <div id="front-camera-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm z-10 transition-all duration-300">
+                    <button onclick="enableFrontCamera()" class="group relative flex items-center justify-center w-16 h-16 rounded-full bg-tech-500 hover:bg-tech-400 text-white shadow-lg shadow-tech-500/30 transition-all active:scale-95">
+                        <svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <span class="absolute -bottom-8 text-xs font-mono text-gray-400 group-hover:text-white transition-colors whitespace-nowrap">开启前置视角</span>
+                    </button>
+                </div>
+
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
+                    <span class="text-xs text-gray-700 font-mono">无信号 - 前置</span>
+                </div>
+
+                <div class="absolute top-3 left-3 flex items-center gap-2 bg-black/40 backdrop-blur px-2 py-1 rounded border border-white/10 z-20">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]"></div>
+                    <span class="text-[10px] font-bold text-white tracking-wide">前置摄像头</span>
+                </div>
+                <div class="absolute inset-0 opacity-20 pointer-events-none border border-white/5 m-4">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border-l border-t border-white/50"></div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border-r border-b border-white/50"></div>
+                </div>
+            </div>
+
+        </section>
+        
+        <aside class="lg:w-[420px] flex-none flex flex-col border-l border-gray-800 bg-gray-900/50 backdrop-blur relative z-10 order-2 lg:order-2">
+            
+            <div class="flex-none p-5 border-b border-gray-800/50">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    底盘机动
+                </h3>
+                
+                <div class="grid grid-cols-3 gap-2 max-w-[260px] mx-auto">
+                    <button id="btn-q" data-key="q" class="h-14 bg-gray-800 rounded hover:bg-gray-700 active:bg-tech-600 active:text-white border-b-2 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all flex flex-col items-center justify-center text-gray-400"
+                            onmousedown="sendCommand('rotate_left')" onmouseup="sendCommand('stop')" ontouchstart="sendCommand('rotate_left')" ontouchend="sendCommand('stop')">
+                        <span class="text-lg">↺</span>
+                        <span class="text-[10px] font-mono">Q</span>
+                    </button>
+                    
+                    <button id="btn-w" data-key="w" class="h-14 bg-gray-700 rounded hover:bg-gray-600 active:bg-tech-500 active:text-white border-b-2 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all flex items-center justify-center text-white font-bold shadow-lg shadow-tech-900/20"
+                            onmousedown="sendCommand('forward')" onmouseup="sendCommand('stop')" ontouchstart="sendCommand('forward')" ontouchend="sendCommand('stop')">W</button>
+                    
+                    <button id="btn-e" data-key="e" class="h-14 bg-gray-800 rounded hover:bg-gray-700 active:bg-tech-600 active:text-white border-b-2 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all flex flex-col items-center justify-center text-gray-400"
+                            onmousedown="sendCommand('rotate_right')" onmouseup="sendCommand('stop')" ontouchstart="sendCommand('rotate_right')" ontouchend="sendCommand('stop')">
+                        <span class="text-lg">↻</span>
+                        <span class="text-[10px] font-mono">E</span>
+                    </button>
+                    
+                    <button id="btn-a" data-key="a" class="h-14 bg-gray-700 rounded hover:bg-gray-600 active:bg-tech-500 active:text-white border-b-2 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all flex items-center justify-center text-white font-bold"
+                            onmousedown="sendCommand('left')" onmouseup="sendCommand('stop')" ontouchstart="sendCommand('left')" ontouchend="sendCommand('stop')">A</button>
+                    
+                    <button id="btn-space" data-key=" " class="h-14 bg-red-900/30 text-red-400 border-red-900/50 border border-b-2 rounded active:bg-red-600 active:text-white active:border-b-0 active:translate-y-[2px] transition-all flex items-center justify-center"
+                            onclick="sendCommand('stop')">停止</button>
+                    
+                    <button id="btn-d" data-key="d" class="h-14 bg-gray-700 rounded hover:bg-gray-600 active:bg-tech-500 active:text-white border-b-2 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all flex items-center justify-center text-white font-bold"
+                            onmousedown="sendCommand('right')" onmouseup="sendCommand('stop')" ontouchstart="sendCommand('right')" ontouchend="sendCommand('stop')">D</button>
+                    
+                    <div class="opacity-0"></div>
+                    <button id="btn-s" data-key="s" class="h-14 bg-gray-700 rounded hover:bg-gray-600 active:bg-tech-500 active:text-white border-b-2 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all flex items-center justify-center text-white font-bold"
+                            onmousedown="sendCommand('backward')" onmouseup="sendCommand('stop')" ontouchstart="sendCommand('backward')" ontouchend="sendCommand('stop')">S</button>
+                    <div class="opacity-0"></div>
+                </div>
+            </div>
+
+            <!-- 手势控制按钮 - 更显眼 -->
+            <div class="px-5 py-4 border-b border-gray-800/50 flex gap-3">
+                <button id="gesture-toggle-btn" onclick="toggleGestureControl()" class="flex-1 py-4 px-2 text-sm font-bold bg-gradient-to-r from-tech-500 to-tech-600 hover:from-tech-400 hover:to-tech-500 text-white border-2 border-tech-400 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-tech-500/30 hover:shadow-tech-500/50 active:scale-95 transform">
+                    <span class="text-xl">✋</span>
+                    <span>手势控制</span>
+                </button>
+                <button id="face-control-btn" onclick="toggleFaceControl()" class="flex-1 py-4 px-2 text-sm font-bold bg-gray-800 hover:bg-gray-700 text-gray-400 border-2 border-gray-700 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-gray-500/30 active:scale-95 transform">
+                    <span class="text-xl">☺</span>
+                    <span>人脸控制</span>
+                </button>
+            </div>
+
+            <div class="flex-1 p-5 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
+                <div class="flex justify-between items-end mb-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        机械臂控制
+                    </h3>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="resetArmToHome()" class="px-2 py-1 text-[10px] bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-gray-300 transition-colors">归位</button>
+                        <button onclick="getCurrentArmPosition()" class="px-2 py-1 text-[10px] bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-tech-400 transition-colors">校准</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-x-4 gap-y-5">
+                    <div class="space-y-4">
+                        <div class="group">
+                            <div class="flex justify-between mb-1"><span class="text-[10px] text-gray-500 font-mono">肩部水平</span><span id="shoulder-pan-value" class="text-[10px] text-tech-400 font-mono">0</span></div>
+                            <div class="flex items-center gap-1">
+                                <button onmousedown="startAdjustSlider('shoulder-pan', -2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('shoulder-pan', -2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">◀</button>
+                                <input type="range" id="shoulder-pan" class="arm-slider flex-1" min="-60" max="60" value="0" step="1" data-joint="arm_shoulder_pan.pos">
+                                <button onmousedown="startAdjustSlider('shoulder-pan', 2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('shoulder-pan', 2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">▶</button>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <div class="flex justify-between mb-1"><span class="text-[10px] text-gray-500 font-mono">肩部垂直</span><span id="shoulder-lift-value" class="text-[10px] text-tech-400 font-mono">0</span></div>
+                            <div class="flex items-center gap-1">
+                                <button onmousedown="startAdjustSlider('shoulder-lift', -2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('shoulder-lift', -2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">◀</button>
+                                <input type="range" id="shoulder-lift" class="arm-slider flex-1" min="-55" max="55" value="0" step="1" data-joint="arm_shoulder_lift.pos">
+                                <button onmousedown="startAdjustSlider('shoulder-lift', 2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('shoulder-lift', 2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">▶</button>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <div class="flex justify-between mb-1"><span class="text-[10px] text-gray-500 font-mono">肘关节</span><span id="elbow-flex-value" class="text-[10px] text-tech-400 font-mono">0</span></div>
+                            <div class="flex items-center gap-1">
+                                <button onmousedown="startAdjustSlider('elbow-flex', -2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('elbow-flex', -2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">◀</button>
+                                <input type="range" id="elbow-flex" class="arm-slider flex-1" min="-50" max="50" value="0" step="1" data-joint="arm_elbow_flex.pos">
+                                <button onmousedown="startAdjustSlider('elbow-flex', 2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('elbow-flex', 2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">▶</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="group">
+                            <div class="flex justify-between mb-1"><span class="text-[10px] text-gray-500 font-mono">腕关节弯曲</span><span id="wrist-flex-value" class="text-[10px] text-tech-400 font-mono">0</span></div>
+                            <div class="flex items-center gap-1">
+                                <button onmousedown="startAdjustSlider('wrist-flex', -2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('wrist-flex', -2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">◀</button>
+                                <input type="range" id="wrist-flex" class="arm-slider flex-1" min="-70" max="70" value="0" step="1" data-joint="arm_wrist_flex.pos">
+                                <button onmousedown="startAdjustSlider('wrist-flex', 2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('wrist-flex', 2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">▶</button>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <div class="flex justify-between mb-1"><span class="text-[10px] text-gray-500 font-mono">腕关节旋转</span><span id="wrist-roll-value" class="text-[10px] text-tech-400 font-mono">0</span></div>
+                            <div class="flex items-center gap-1">
+                                <button onmousedown="startAdjustSlider('wrist-roll', -2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('wrist-roll', -2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">◀</button>
+                                <input type="range" id="wrist-roll" class="arm-slider flex-1" min="-70" max="70" value="0" step="1" data-joint="arm_wrist_roll.pos">
+                                <button onmousedown="startAdjustSlider('wrist-roll', 2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('wrist-roll', 2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">▶</button>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <div class="flex justify-between mb-1"><span class="text-[10px] text-gray-500 font-mono">夹爪</span><span id="gripper-value" class="text-[10px] text-tech-400 font-mono">0</span></div>
+                            <div class="flex items-center gap-1">
+                                <button onmousedown="startAdjustSlider('gripper', -2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('gripper', -2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">◀</button>
+                                <input type="range" id="gripper" class="arm-slider flex-1" min="0" max="60" value="0" step="1" data-joint="arm_gripper.pos">
+                                <button onmousedown="startAdjustSlider('gripper', 2)" onmouseup="stopAdjustSlider()" onmouseleave="stopAdjustSlider()" ontouchstart="startAdjustSlider('gripper', 2)" ontouchend="stopAdjustSlider()" class="slider-arrow-btn w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-tech-600 rounded text-gray-400 hover:text-white text-xs transition-all">▶</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- 倒计时提示（最后10秒显示，不遮挡操作） -->
+    <div id="countdown-overlay" class="hidden fixed top-20 right-6 z-50 pointer-events-none">
+        <div class="bg-red-600/90 backdrop-blur-sm border-2 border-red-400 rounded-xl p-6 shadow-2xl shadow-red-500/50">
+            <div class="text-center">
+                <div class="text-xs text-red-200 mb-2 font-semibold uppercase tracking-wider">剩余时间</div>
+                <div id="countdown-number" class="text-6xl font-bold text-white mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] animate-pulse">
+                    10
+                </div>
+                <div class="text-sm text-red-100">控制时间即将结束</div>
+            </div>
+        </div>
     </div>
 
+    <!-- 手势控制预览窗口 -->
+    <div id="gesture-preview-container" class="hidden fixed bottom-6 right-6 z-40 bg-gray-900/90 backdrop-blur border border-gray-700 rounded-lg shadow-2xl overflow-hidden w-80 h-60 min-w-[200px] min-h-[150px]" style="resize: both;">
+        <div id="gesture-drag-handle" class="absolute top-0 left-0 w-full h-8 z-10 flex items-center gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 cursor-move select-none">
+            <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+            <span class="text-[10px] text-white font-mono uppercase tracking-wider shadow-black drop-shadow-md flex-1">Live Input</span>
+            <!-- 遮罩切换按钮 -->
+            <button id="toggle-mask-btn" class="hidden pointer-events-auto px-2 py-0.5 text-[10px] bg-gray-800/50 hover:bg-gray-700 border border-white/20 rounded text-white transition-colors z-50" onclick="toggleFaceMask()">
+                🎭 隐藏遮罩
+            </button>
+        </div>
+        <video id="gesture-video" class="hidden w-full h-full object-cover transform -scale-x-100 pointer-events-none" autoplay playsinline muted></video>
+        <canvas id="gesture-canvas" width="320" height="240" class="w-full h-full object-cover transform -scale-x-100 pointer-events-none"></canvas>
+    </div>
+
+    <script src="{{ url_for('static', filename='gesture_control.js') }}"></script>
+    <script src="{{ url_for('static', filename='face_control.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
-
