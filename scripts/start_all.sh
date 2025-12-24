@@ -47,8 +47,8 @@ cleanup() {
     exit 0
 }
 
-# 设置信号处理
-trap cleanup SIGINT SIGTERM
+# 设置信号处理 (使用兼容 sh 的语法)
+trap cleanup INT TERM
 
 # 检查 Python 环境
 check_python() {
@@ -84,10 +84,13 @@ start_web_controller() {
     
     export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
     export WEB_PASSWORD="${WEB_PASSWORD:-moyu123}"
+    export ROBOT_ID="${ROBOT_ID:-my_awesome_kiwi}"
     
     python -c "
+import os
 from moyurobot.web.controller import run_server
-run_server(host='0.0.0.0', port=8080)
+robot_id = os.environ.get('ROBOT_ID', 'my_awesome_kiwi')
+run_server(host='0.0.0.0', port=8080, robot_id=robot_id)
 " &
     WEB_PID=$!
     
