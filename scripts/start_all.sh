@@ -39,6 +39,9 @@ cleanup() {
     if [ -n "$WEB_PID" ]; then
         kill $WEB_PID 2>/dev/null && log_info "Web 控制器已停止"
     fi
+    if [ -n "$PIPE_PID" ]; then
+        kill $PIPE_PID 2>/dev/null && log_info "MCP 管道服务已停止"
+    fi
     if [ -n "$TUYA_PID" ]; then
         kill $TUYA_PID 2>/dev/null && log_info "Tuya MCP 服务已停止"
     fi
@@ -157,6 +160,32 @@ wait_for_web_server() {
     exit 1
 }
 
+# 启动 MCP 管道服务
+start_mcp_pipe() {
+    log_header "启动 MCP 管道服务"
+    
+    # 设置 MCP 端点（小智 AI）
+    export MCP_ENDPOINT="${MCP_ENDPOINT:-wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEzNTM4MSwiYWdlbnRJZCI6Njg4NzYyLCJlbmRwb2ludElkIjoiYWdlbnRfNjg4NzYyIiwicHVycG9zZSI6Im1jcC1lbmRwb2ludCIsImlhdCI6MTc2MDI0OTEzNSwiZXhwIjoxNzkxODA2NzM1fQ.CbO0We-fo_qO5DmlP3ugu6G2jehfP_fAzTxoLUngp0htPyWQUbNF9WebLfhZNzAwX_IUiSLb0MkC-hgoF78c3w}"
+    
+    # 设置 MCP 配置文件路径
+    export MCP_CONFIG="$PROJECT_ROOT/config/mcp_config.json"
+    
+    log_info "MCP 端点已配置"
+    log_info "MCP 配置: $MCP_CONFIG"
+    
+    cd "$PROJECT_ROOT/src"
+    
+    echo "--- Starting new session $(date) ---" >> "$HOME/logs/moyurobot_pipe.log"
+    
+    python -m moyurobot.mcp.pipe >> "$HOME/logs/moyurobot_pipe.log" 2>&1 &
+    PIPE_PID=$!
+    
+    log_info "MCP 管道服务已启动 (PID: $PIPE_PID)"
+    log_info "日志文件: $HOME/logs/moyurobot_pipe.log"
+    log_warn "注意: Pipe 服务会启动独立的 MCP stdio 服务器"
+    log_warn "      如果出现机器人连接冲突，请检查日志"
+}
+
 # 启动 Tuya MCP SDK（如果存在）
 start_tuya_mcp() {
     TUYA_DIR="/home/bobo/tuya-mcp-sdk"
@@ -188,6 +217,7 @@ show_usage() {
     echo "服务列表："
     echo "  - Web 控制器: http://localhost:8080"
     echo "  - MCP HTTP:   http://localhost:8000 (同进程，共享机器人)"
+    echo "  - MCP 管道服务: 连接小智 AI"
     if [ -n "$TUYA_PID" ]; then
         echo "  - Tuya MCP SDK: 智能家居控制"
     fi
@@ -196,18 +226,21 @@ show_usage() {
     echo ""
     echo "日志文件:"
     echo "  - Web + MCP: $HOME/logs/moyurobot_web.log"
+    echo "  - MCP 管道: $HOME/logs/moyurobot_pipe.log"
     if [ -n "$TUYA_PID" ]; then
         echo "  - Tuya: $HOME/logs/tuya_quick_start.log"
     fi
     echo ""
     echo "进程 ID:"
     echo "  - Web + MCP PID: $WEB_PID"
+    echo "  - Pipe PID: $PIPE_PID"
     if [ -n "$TUYA_PID" ]; then
         echo "  - Tuya PID: $TUYA_PID"
     fi
     echo ""
     echo "说明: Web 和 MCP HTTP 在同一进程中运行，"
-    echo "      共享机器人连接，不会产生资源冲突。"
+    echo "      共享机器人连接。MCP 管道服务会启动独立的"
+    echo "      stdio 服务器连接到小智 AI。"
     echo ""
     echo "按 Ctrl+C 停止所有服务"
 }
@@ -236,6 +269,9 @@ main() {
     # 注意：Web 和 MCP HTTP 在同一进程中，共享机器人连接
     start_web_controller
     wait_for_web_server
+    
+    # 启动 MCP 管道服务（连接到小智 AI）
+    start_mcp_pipe
     
     # Tuya MCP 是独立的智能家居控制，不需要机器人
     start_tuya_mcp
