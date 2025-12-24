@@ -6,8 +6,9 @@
                 "-m",
                 "moyurobot.mcp.server"
             ],
-            "cwd": "/Users/zhengbo.zb/workspaces/moyurobot/src"
+            "env": {
+                "ROBOT_ID": "my_awesome_kiwi"
+            }
         }
     }
 }
-

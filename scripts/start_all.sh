@@ -158,7 +158,11 @@ start_mcp_pipe() {
     # 设置 MCP 端点（小智 AI）
     export MCP_ENDPOINT="${MCP_ENDPOINT:-wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEzNTM4MSwiYWdlbnRJZCI6Njg4NzYyLCJlbmRwb2ludElkIjoiYWdlbnRfNjg4NzYyIiwicHVycG9zZSI6Im1jcC1lbmRwb2ludCIsImlhdCI6MTc2MDI0OTEzNSwiZXhwIjoxNzkxODA2NzM1fQ.CbO0We-fo_qO5DmlP3ugu6G2jehfP_fAzTxoLUngp0htPyWQUbNF9WebLfhZNzAwX_IUiSLb0MkC-hgoF78c3w}"
     
+    # 设置 MCP 配置文件路径
+    export MCP_CONFIG="$PROJECT_ROOT/config/mcp_config.json"
+    
     log_info "MCP 端点已配置"
+    log_info "MCP 配置: $MCP_CONFIG"
     
     cd "$PROJECT_ROOT/src"
     
