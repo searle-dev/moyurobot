@@ -57,7 +57,10 @@ def get_service():
     if service is None:
         logger.info("全局服务实例不存在，创建新的服务实例")
         try:
-            service = create_default_service()
+            # 从环境变量获取 robot_id，默认使用 my_awesome_kiwi（与校准文件匹配）
+            robot_id = os.environ.get('ROBOT_ID', 'my_awesome_kiwi')
+            logger.info(f"使用 robot_id: {robot_id}")
+            service = create_default_service(robot_id=robot_id)
             if service.connect():
                 logger.info("✓ 服务创建并连接成功")
                 set_global_service(service)
