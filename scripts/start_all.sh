@@ -90,6 +90,15 @@ check_dependencies() {
         log_warn "FastMCP 未安装，正在安装..."
         pip install fastmcp
     }
+    
+    # 检查 mcp_proxy（用于连接 HTTP MCP 服务器）
+    python -c "import mcp_proxy" 2>/dev/null || {
+        log_warn "mcp_proxy 未安装，正在安装..."
+        pip install mcp-proxy 2>/dev/null || {
+            log_warn "mcp-proxy 安装失败，MCP 管道服务可能无法连接到 HTTP 服务器"
+            log_warn "可以尝试: pip install mcp-proxy 或使用 stdio 模式"
+        }
+    }
 }
 
 # 启动 Web 控制器（带 MCP HTTP 模式）
@@ -158,34 +167,6 @@ wait_for_web_server() {
     
     log_error "Web 服务器启动超时"
     exit 1
-}
-
-# 等待 MCP HTTP 服务器就绪
-wait_for_mcp_server() {
-    log_info "等待 MCP HTTP 服务器启动..."
-    
-    MAX_RETRIES=30
-    RETRY_COUNT=0
-    
-    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        # 检查进程是否还在运行
-        if ! kill -0 $WEB_PID 2>/dev/null; then
-            log_error "Web 服务器进程意外退出！"
-            exit 1
-        fi
-        
-        # 检查 MCP 端点是否可用
-        if curl -s -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -d '{}' > /dev/null 2>&1; then
-            log_info "✓ MCP HTTP 服务器已就绪!"
-            return 0
-        fi
-        
-        RETRY_COUNT=$((RETRY_COUNT + 1))
-        printf "  等待中... (%d/%d)\r" "$RETRY_COUNT" "$MAX_RETRIES"
-        sleep 1
-    done
-    
-    log_warn "MCP HTTP 服务器启动超时，但继续启动 pipe 服务"
 }
 
 # 启动 MCP 管道服务

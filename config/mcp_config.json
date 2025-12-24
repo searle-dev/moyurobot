@@ -1,7 +1,7 @@
 {
     "mcpServers": {
         "moyu-robot": {
-            "type": "streamablehttp",
+            "type": "http",
             "url": "http://localhost:8000/mcp",
             "env": {
                 "ROBOT_ID": "my_awesome_kiwi"
