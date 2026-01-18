@@ -1,12 +1,15 @@
 {
     "robot": {
         "robot_id": "moyu_robot",
+        "robot_type": "lekiwi",
         "linear_speed": 0.2,
         "angular_speed": 30.0,
         "arm_servo_speed": 0.2,
         "arm_torque_limit": 600,
         "command_timeout_s": 6.0,
-        "max_loop_freq_hz": 30
+        "max_loop_freq_hz": 30,
+        "port1": "/dev/ttyACM1",
+        "port2": "/dev/ttyACM0"
     },
     "cameras": {
         "front": {

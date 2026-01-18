@@ -56,6 +56,9 @@ class RobotServiceConfig:
     # XLeRobot 双臂摄像头配置
     left_wrist_camera_name: str = "USB Camera Left"
     right_wrist_camera_name: str = "USB Camera Right"
+    # XLeRobot 串口配置
+    port1: Optional[str] = None  # port to connect to the bus (so101 + head camera)
+    port2: Optional[str] = None  # port to connect to the bus (same as lekiwi setup)
 
     def is_xlerobot(self) -> bool:
         """检查是否为 XLeRobot 双臂机器人"""

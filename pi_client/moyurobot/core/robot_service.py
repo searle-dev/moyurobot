@@ -273,10 +273,20 @@ class RobotService:
         # 创建摄像头配置
         cameras_config = self._create_cameras_config()
 
-        robot_config = self._robot_config_class(
-            id=self.config.robot_id,
-            cameras=cameras_config
-        )
+        # 构建配置参数字典
+        config_params = {
+            "id": self.config.robot_id,
+            "cameras": cameras_config
+        }
+
+        # XLeRobot 需要额外的串口配置
+        if self.config.is_xlerobot():
+            if self.config.port1:
+                config_params["port1"] = self.config.port1
+            if self.config.port2:
+                config_params["port2"] = self.config.port2
+
+        robot_config = self._robot_config_class(**config_params)
 
         return self._robot_class(robot_config)
 
