@@ -114,14 +114,22 @@ check_dependencies() {
 # Web (8080) 和 MCP HTTP (8000) 在同一进程中运行，共享机器人连接
 start_web_controller() {
     log_header "启动 Web 控制器 (MCP HTTP 模式)"
-    
+
     cd "$PROJECT_ROOT"
-    
+
     export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
     export WEB_PASSWORD="${WEB_PASSWORD:-moyu123}"
     export ROBOT_ID="${ROBOT_ID:-my_awesome_kiwi}"
-    
+    # 机器人类型: lekiwi (单臂) 或 xlerobot (双臂)
+    export ROBOT_TYPE="${ROBOT_TYPE:-lekiwi}"
+
     log_info "机器人ID: $ROBOT_ID"
+    log_info "机器人类型: $ROBOT_TYPE"
+    if [ "$ROBOT_TYPE" = "xlerobot" ]; then
+        log_info "  └─ XLeRobot 双臂模式已启用"
+    else
+        log_info "  └─ LeKiwi 单臂模式"
+    fi
     log_info "Web 端口: 8080 | MCP HTTP 端口: 8000"
     log_info "两个服务共享同一个机器人连接（避免资源冲突）"
     
@@ -231,8 +239,17 @@ start_tuya_mcp() {
 # 显示使用说明
 show_usage() {
     log_header "🐟 摸鱼遥控车 - 服务已启动"
-    
-    echo "服务列表："
+
+    echo "机器人配置:"
+    echo "  - 机器人 ID: $ROBOT_ID"
+    echo "  - 机器人类型: $ROBOT_TYPE"
+    if [ "$ROBOT_TYPE" = "xlerobot" ]; then
+        echo "    └─ XLeRobot 双臂机器人 (左臂 + 右臂)"
+    else
+        echo "    └─ LeKiwi 单臂机器人"
+    fi
+    echo ""
+    echo "服务列表:"
     echo "  - Web 控制器: http://localhost:8080"
     echo "  - MCP HTTP:   http://localhost:8000 (同进程，共享机器人)"
     echo "  - MCP 管道服务: 连接小智 AI"
@@ -260,6 +277,13 @@ show_usage() {
     echo "      共享机器人连接。MCP 管道服务会启动独立的"
     echo "      stdio 服务器连接到小智 AI。"
     echo ""
+    if [ "$ROBOT_TYPE" = "xlerobot" ]; then
+        echo "XLeRobot 双臂 MCP 工具:"
+        echo "  - control_left_arm / control_right_arm"
+        echo "  - control_dual_arms / reset_dual_arms"
+        echo "  - control_dual_grippers / mirror_arm"
+        echo ""
+    fi
     echo "按 Ctrl+C 停止所有服务"
 }
 
