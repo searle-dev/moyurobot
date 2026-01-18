@@ -8,6 +8,17 @@
 # 详见: https://github.com/huggingface/lerobot
 lerobot>=0.1.0
 
+# === XLeRobot 双臂机器人支持（可选）===
+# XLeRobot 是基于 LeRobot 的双臂移动机器人
+# 安装方式:
+#   1. 克隆 XLeRobot 仓库: git clone https://github.com/Vector-Wangel/XLeRobot
+#   2. 将 XLeRobot 文件复制到 lerobot 目录:
+#      - IK 求解器文件 → lerobot/model/
+#      - 机器人配置文件 → lerobot/robots/xlerobot/
+#   3. 或者使用 LeKiwi 兼容模式（自动回退）
+# 详见: https://github.com/Vector-Wangel/XLeRobot
+# 文档: https://xlerobot.readthedocs.io/
+
 # === Web 框架 ===
 flask>=2.3.0
 flask-cors>=4.0.0

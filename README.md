@@ -2,6 +2,10 @@
 
 基于 [LeRobot](https://github.com/huggingface/lerobot) 和 MCP (Model Context Protocol) 的智能机器人控制平台，支持 AI 控制、Web 遥控、手势控制和人脸追踪。
 
+**支持的机器人类型**：
+- **LeKiwi**：单臂移动机器人（三轮全向底盘 + 6DOF 机械臂）
+- **XLeRobot**：双臂移动机器人（LeKiwi 底盘 + 双 SO101 机械臂）
+
 ## ✨ 功能特性
 
 - 🤖 **MCP AI 控制**: 通过 MCP 协议与 AI 模型（如 Claude、小智 AI）集成，实现自然语言控制机器人
@@ -16,7 +20,9 @@
 
 ## 🔧 硬件要求
 
-本项目基于 LeRobot 的 **LeKiwi** 移动机械臂机器人：
+本项目支持以下机器人平台：
+
+### LeKiwi（单臂机器人）
 
 - **LeKiwi 机器人**：三轮全向移动底盘 + 6DOF 机械臂
 - **摄像头**：
@@ -25,6 +31,18 @@
 - **运行环境**：树莓派 / Linux PC
 
 > 详见 LeRobot 硬件文档：https://github.com/huggingface/lerobot
+
+### XLeRobot（双臂机器人）
+
+- **XLeRobot 机器人**：LeKiwi 底盘 + 双 SO101 机械臂
+- **摄像头**：
+  - 前置摄像头
+  - 左手腕摄像头
+  - 右手腕摄像头
+- **运行环境**：树莓派 / Linux PC
+- **成本**：约 $660 起
+
+> 详见 XLeRobot 硬件文档：https://github.com/Vector-Wangel/XLeRobot
 
 ## 📁 项目结构
 
@@ -190,6 +208,20 @@ python -m moyurobot.web.controller --robot-id my_awesome_kiwi
 | `capture_and_analyze_with_qwen` | 拍照并用千问 VL 分析 |
 | `get_robot_status` | 获取机器人状态 |
 | `set_speed_level` | 设置速度等级（slow/medium/fast） |
+| `get_robot_type` | 获取机器人类型（单臂/双臂） |
+
+#### XLeRobot 双臂专用工具
+
+以下工具仅在 XLeRobot 双臂机器人模式下可用：
+
+| 工具名 | 功能 |
+|--------|------|
+| `control_left_arm` | 控制左臂关节位置 |
+| `control_right_arm` | 控制右臂关节位置 |
+| `control_dual_arms` | 同时控制双臂 |
+| `reset_dual_arms` | 重置双臂到初始位置 |
+| `control_dual_grippers` | 控制双臂夹爪 |
+| `mirror_arm` | 镜像复制手臂姿态 |
 
 ### 配置 Claude Desktop
 
@@ -241,6 +273,7 @@ python -m moyurobot.web.controller --robot-id my_awesome_kiwi
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `ROBOT_ID` | 机器人 ID（与校准文件匹配） | `my_awesome_kiwi` |
+| `ROBOT_TYPE` | 机器人类型：`lekiwi`（单臂）或 `xlerobot`（双臂） | `lekiwi` |
 | `FLASK_SECRET_KEY` | Flask 会话密钥 | 随机生成 |
 | `QWEN_API_KEY` | 阿里云千问 VL API Key（拍照分析） | - |
 | `MCP_ENDPOINT` | 远程 MCP 端点（如小智 AI） | - |
@@ -257,6 +290,7 @@ python -m moyurobot.web.controller --robot-id my_awesome_kiwi
 {
     "robot": {
         "robot_id": "my_awesome_kiwi",
+        "robot_type": "lekiwi",
         "linear_speed": 0.2,
         "angular_speed": 30.0,
         "arm_servo_speed": 0.2,
@@ -269,6 +303,35 @@ python -m moyurobot.web.controller --robot-id my_awesome_kiwi
         },
         "wrist": {
             "device_name_or_path": "USB Camera",
+            "rotate_180": true
+        }
+    }
+}
+```
+
+**XLeRobot 双臂配置示例**：
+
+```json
+{
+    "robot": {
+        "robot_id": "my_xlerobot",
+        "robot_type": "xlerobot",
+        "linear_speed": 0.2,
+        "angular_speed": 30.0,
+        "arm_servo_speed": 0.2,
+        "arm_torque_limit": 600
+    },
+    "cameras": {
+        "front": {
+            "device_name_or_path": "T1 Webcam",
+            "rotate_180": false
+        },
+        "left_wrist": {
+            "device_name_or_path": "USB Camera Left",
+            "rotate_180": true
+        },
+        "right_wrist": {
+            "device_name_or_path": "USB Camera Right",
             "rotate_180": true
         }
     }
@@ -360,6 +423,7 @@ MIT License
 ## 🙏 致谢
 
 - [LeRobot](https://github.com/huggingface/lerobot) - Hugging Face 机器人控制框架
+- [XLeRobot](https://github.com/Vector-Wangel/XLeRobot) - 低成本双臂移动机器人平台
 - [FastMCP](https://github.com/jlowin/fastmcp) - MCP 协议 Python 实现
 - [MediaPipe](https://mediapipe.dev/) - Google 手势识别库
 - [Flask](https://flask.palletsprojects.com/) - Web 框架
@@ -368,4 +432,5 @@ MIT License
 
 - LeRobot 文档：https://huggingface.co/docs/lerobot
 - LeKiwi 硬件指南：https://github.com/huggingface/lerobot/tree/main/examples/10_use_so100
+- XLeRobot 文档：https://xlerobot.readthedocs.io/
 - MCP 协议规范：https://modelcontextprotocol.io/

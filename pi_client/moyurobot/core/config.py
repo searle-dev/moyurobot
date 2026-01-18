@@ -3,16 +3,24 @@
 配置管理模块
 
 提供应用配置的加载和管理功能
+支持 LeKiwi 和 XLeRobot 机器人类型
 """
 
 import os
 import json
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
+
+
+class RobotType(str, Enum):
+    """机器人类型枚举"""
+    LEKIWI = "lekiwi"      # LeKiwi 单臂机器人
+    XLEROBOT = "xlerobot"  # XLeRobot 双臂机器人
 
 
 @dataclass
@@ -30,6 +38,8 @@ class CameraConfig:
 class RobotServiceConfig:
     """机器人服务配置"""
     robot_id: str = "moyu_robot"
+    # 机器人类型：lekiwi（单臂）或 xlerobot（双臂）
+    robot_type: str = "lekiwi"
     # 移动速度配置 (m/s 和 deg/s)
     linear_speed: float = 0.2
     angular_speed: float = 30.0
@@ -43,6 +53,17 @@ class RobotServiceConfig:
     # 摄像头配置（设备名称，用于自动查找设备路径）
     front_camera_name: str = "T1 Webcam"
     wrist_camera_name: str = "USB Camera"
+    # XLeRobot 双臂摄像头配置
+    left_wrist_camera_name: str = "USB Camera Left"
+    right_wrist_camera_name: str = "USB Camera Right"
+
+    def is_xlerobot(self) -> bool:
+        """检查是否为 XLeRobot 双臂机器人"""
+        return self.robot_type.lower() == RobotType.XLEROBOT.value
+
+    def is_lekiwi(self) -> bool:
+        """检查是否为 LeKiwi 单臂机器人"""
+        return self.robot_type.lower() == RobotType.LEKIWI.value
 
 
 @dataclass

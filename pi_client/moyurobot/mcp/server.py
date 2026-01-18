@@ -48,19 +48,22 @@ speed_levels = [
 def get_service():
     """获取机器人服务实例"""
     from moyurobot.core.robot_service import (
-        get_global_service, 
-        create_default_service, 
+        get_global_service,
+        create_default_service,
         set_global_service
     )
-    
+
     service = get_global_service()
     if service is None:
         logger.info("全局服务实例不存在，创建新的服务实例")
         try:
             # 从环境变量获取 robot_id，默认使用 my_awesome_kiwi（与校准文件匹配）
             robot_id = os.environ.get('ROBOT_ID', 'my_awesome_kiwi')
-            logger.info(f"使用 robot_id: {robot_id}")
-            service = create_default_service(robot_id=robot_id)
+            # 从环境变量获取 robot_type，默认使用 lekiwi（单臂）
+            # 可选值: lekiwi（单臂）, xlerobot（双臂）
+            robot_type = os.environ.get('ROBOT_TYPE', 'lekiwi')
+            logger.info(f"使用 robot_id: {robot_id}, robot_type: {robot_type}")
+            service = create_default_service(robot_id=robot_id, robot_type=robot_type)
             if service.connect():
                 logger.info("✓ 服务创建并连接成功")
                 set_global_service(service)
@@ -70,8 +73,16 @@ def get_service():
         except Exception as e:
             logger.error(f"创建服务失败: {e}")
             return None
-    
+
     return service
+
+
+def is_xlerobot() -> bool:
+    """检查当前是否为 XLeRobot 双臂机器人"""
+    service = get_service()
+    if service is None:
+        return False
+    return service.config.is_xlerobot()
 
 
 def _smooth_arm_motion(service, target_positions: Dict[str, float], 
@@ -967,6 +978,289 @@ def control_multiple_arm_joints_limited(joint_positions: str) -> dict:
     except Exception as e:
         logger.error(f"多关节控制失败: {e}")
         return {"success": False, "error": f"多关节控制异常: {str(e)}"}
+
+
+# ==================== XLeRobot 双臂专用工具 ====================
+
+@mcp.tool()
+def get_robot_type() -> dict:
+    """
+    获取当前机器人类型（单臂 LeKiwi 或双臂 XLeRobot）
+
+    Returns:
+        dict: 机器人类型信息
+    """
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    robot_type = service.config.robot_type
+    is_dual_arm = service.config.is_xlerobot()
+
+    return {
+        "success": True,
+        "robot_type": robot_type,
+        "is_dual_arm": is_dual_arm,
+        "description": "XLeRobot 双臂机器人" if is_dual_arm else "LeKiwi 单臂机器人",
+        "available_arms": ["left", "right"] if is_dual_arm else ["default"]
+    }
+
+
+@mcp.tool()
+def control_left_arm(joint_positions: str) -> dict:
+    """
+    控制 XLeRobot 左臂关节位置（仅限双臂机器人）
+
+    Args:
+        joint_positions: 关节位置JSON字符串，如 '{"shoulder_pan": 30, "elbow_flex": -20}'
+                        不需要添加 left_ 前缀
+
+    Returns:
+        dict: 操作结果
+    """
+    logger.info(f"控制左臂: {joint_positions}")
+
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    if not service.config.is_xlerobot():
+        return {"success": False, "error": "当前机器人不是 XLeRobot 双臂机器人，请使用单臂控制工具"}
+
+    try:
+        joint_positions_dict = json.loads(joint_positions)
+    except json.JSONDecodeError as e:
+        return {"success": False, "error": f"JSON解析失败: {str(e)}"}
+
+    joint_mapping = {
+        "shoulder_pan": {"key": "shoulder_pan.pos", "min_safe": -50, "max_safe": 50},
+        "shoulder_lift": {"key": "shoulder_lift.pos", "min_safe": -50, "max_safe": 50},
+        "elbow_flex": {"key": "elbow_flex.pos", "min_safe": -50, "max_safe": 50},
+        "wrist_flex": {"key": "wrist_flex.pos", "min_safe": -50, "max_safe": 50},
+        "wrist_roll": {"key": "wrist_roll.pos", "min_safe": -50, "max_safe": 50},
+        "gripper": {"key": "gripper.pos", "min_safe": 0, "max_safe": 50}
+    }
+
+    arm_positions = {}
+    for joint_name, position in joint_positions_dict.items():
+        if joint_name not in joint_mapping:
+            return {"success": False, "error": f"无效的关节名称: {joint_name}"}
+        joint_info = joint_mapping[joint_name]
+        clamped_position = max(joint_info["min_safe"], min(joint_info["max_safe"], position))
+        arm_positions[joint_info["key"]] = clamped_position
+
+    try:
+        result = service.set_left_arm_position(arm_positions)
+        if result["success"]:
+            result["message"] = f"左臂已移动到目标位置"
+            result["arm"] = "left"
+        return result
+    except Exception as e:
+        logger.error(f"左臂控制失败: {e}")
+        return {"success": False, "error": f"左臂控制异常: {str(e)}"}
+
+
+@mcp.tool()
+def control_right_arm(joint_positions: str) -> dict:
+    """
+    控制 XLeRobot 右臂关节位置（仅限双臂机器人）
+
+    Args:
+        joint_positions: 关节位置JSON字符串，如 '{"shoulder_pan": 30, "elbow_flex": -20}'
+                        不需要添加 right_ 前缀
+
+    Returns:
+        dict: 操作结果
+    """
+    logger.info(f"控制右臂: {joint_positions}")
+
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    if not service.config.is_xlerobot():
+        return {"success": False, "error": "当前机器人不是 XLeRobot 双臂机器人，请使用单臂控制工具"}
+
+    try:
+        joint_positions_dict = json.loads(joint_positions)
+    except json.JSONDecodeError as e:
+        return {"success": False, "error": f"JSON解析失败: {str(e)}"}
+
+    joint_mapping = {
+        "shoulder_pan": {"key": "shoulder_pan.pos", "min_safe": -50, "max_safe": 50},
+        "shoulder_lift": {"key": "shoulder_lift.pos", "min_safe": -50, "max_safe": 50},
+        "elbow_flex": {"key": "elbow_flex.pos", "min_safe": -50, "max_safe": 50},
+        "wrist_flex": {"key": "wrist_flex.pos", "min_safe": -50, "max_safe": 50},
+        "wrist_roll": {"key": "wrist_roll.pos", "min_safe": -50, "max_safe": 50},
+        "gripper": {"key": "gripper.pos", "min_safe": 0, "max_safe": 50}
+    }
+
+    arm_positions = {}
+    for joint_name, position in joint_positions_dict.items():
+        if joint_name not in joint_mapping:
+            return {"success": False, "error": f"无效的关节名称: {joint_name}"}
+        joint_info = joint_mapping[joint_name]
+        clamped_position = max(joint_info["min_safe"], min(joint_info["max_safe"], position))
+        arm_positions[joint_info["key"]] = clamped_position
+
+    try:
+        result = service.set_right_arm_position(arm_positions)
+        if result["success"]:
+            result["message"] = f"右臂已移动到目标位置"
+            result["arm"] = "right"
+        return result
+    except Exception as e:
+        logger.error(f"右臂控制失败: {e}")
+        return {"success": False, "error": f"右臂控制异常: {str(e)}"}
+
+
+@mcp.tool()
+def control_dual_arms(left_positions: str = "{}", right_positions: str = "{}") -> dict:
+    """
+    同时控制 XLeRobot 双臂关节位置（仅限双臂机器人）
+
+    Args:
+        left_positions: 左臂关节位置JSON字符串，如 '{"shoulder_pan": 30}'
+        right_positions: 右臂关节位置JSON字符串，如 '{"shoulder_pan": -30}'
+
+    Returns:
+        dict: 操作结果
+    """
+    logger.info(f"控制双臂: 左={left_positions}, 右={right_positions}")
+
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    if not service.config.is_xlerobot():
+        return {"success": False, "error": "当前机器人不是 XLeRobot 双臂机器人"}
+
+    try:
+        left_dict = json.loads(left_positions) if left_positions else {}
+        right_dict = json.loads(right_positions) if right_positions else {}
+    except json.JSONDecodeError as e:
+        return {"success": False, "error": f"JSON解析失败: {str(e)}"}
+
+    try:
+        result = service.set_dual_arm_position(left_dict, right_dict)
+        if result["success"]:
+            result["message"] = "双臂已移动到目标位置"
+        return result
+    except Exception as e:
+        logger.error(f"双臂控制失败: {e}")
+        return {"success": False, "error": f"双臂控制异常: {str(e)}"}
+
+
+@mcp.tool()
+def reset_dual_arms(arm: str = "all") -> dict:
+    """
+    重置 XLeRobot 双臂到初始位置（仅限双臂机器人）
+
+    Args:
+        arm: 要重置的手臂 - "left", "right", "all"（默认）
+
+    Returns:
+        dict: 操作结果
+    """
+    logger.info(f"重置双臂: {arm}")
+
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    if not service.config.is_xlerobot():
+        return {"success": False, "error": "当前机器人不是 XLeRobot 双臂机器人"}
+
+    try:
+        result = service.reset_arm(arm=arm)
+        if result["success"]:
+            result["message"] = f"{'双' if arm == 'all' else arm}臂已重置到初始位置"
+            result["reset_arm"] = arm
+        return result
+    except Exception as e:
+        logger.error(f"重置双臂失败: {e}")
+        return {"success": False, "error": f"重置双臂异常: {str(e)}"}
+
+
+@mcp.tool()
+def control_dual_grippers(action: str, arm: str = "both") -> dict:
+    """
+    控制 XLeRobot 双臂夹爪（仅限双臂机器人）
+
+    Args:
+        action: 动作类型 - "open"（打开）, "close"（关闭）, "half"（半开）
+        arm: 要控制的手臂 - "left", "right", "both"（默认）
+
+    Returns:
+        dict: 操作结果
+    """
+    logger.info(f"控制双臂夹爪: action={action}, arm={arm}")
+
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    if not service.config.is_xlerobot():
+        return {"success": False, "error": "当前机器人不是 XLeRobot 双臂机器人"}
+
+    action_mapping = {
+        "open": 100,
+        "close": 0,
+        "half": 50
+    }
+
+    if action not in action_mapping:
+        return {"success": False, "error": f"无效的动作: {action}。有效选项: open, close, half"}
+
+    gripper_value = action_mapping[action]
+
+    try:
+        result = service.set_gripper(gripper_value, arm=arm)
+        if result["success"]:
+            result["message"] = f"{'双' if arm == 'both' else arm}臂夹爪已{action}"
+            result["action"] = action
+            result["gripper_value"] = gripper_value
+            result["arm"] = arm
+        return result
+    except Exception as e:
+        logger.error(f"控制双臂夹爪失败: {e}")
+        return {"success": False, "error": f"控制双臂夹爪异常: {str(e)}"}
+
+
+@mcp.tool()
+def mirror_arm(source_arm: str = "left") -> dict:
+    """
+    将一只手臂的姿态镜像到另一只手臂（仅限双臂机器人）
+
+    Args:
+        source_arm: 源手臂 - "left"（将左臂姿态复制到右臂）或 "right"（将右臂姿态复制到左臂）
+
+    Returns:
+        dict: 操作结果
+    """
+    logger.info(f"镜像手臂: 从 {source_arm} 到 {'right' if source_arm == 'left' else 'left'}")
+
+    service = get_service()
+    if service is None:
+        return {"success": False, "error": "机器人服务不可用"}
+
+    if not service.config.is_xlerobot():
+        return {"success": False, "error": "当前机器人不是 XLeRobot 双臂机器人"}
+
+    if source_arm not in ["left", "right"]:
+        return {"success": False, "error": f"无效的源手臂: {source_arm}。有效选项: left, right"}
+
+    try:
+        result = service.mirror_arm_position(source_arm=source_arm)
+        if result["success"]:
+            target_arm = "right" if source_arm == "left" else "left"
+            result["message"] = f"已将{source_arm}臂姿态镜像到{target_arm}臂"
+            result["source_arm"] = source_arm
+            result["target_arm"] = target_arm
+        return result
+    except Exception as e:
+        logger.error(f"镜像手臂失败: {e}")
+        return {"success": False, "error": f"镜像手臂异常: {str(e)}"}
 
 
 # 启动服务器
